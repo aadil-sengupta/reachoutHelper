@@ -1,0 +1,17 @@
+{
+  "sources": [
+    {
+      "id": "roboscout",
+      "name": "RoboScout Campaign",
+      "path": "/Volumes/stuff/Projects/reachoutHelper/crm.db",
+      "templates": {
+        "simple": "Hi {{first_name}}, I noticed your work at {{company}}. Would love to connect and chat about potential synergies!",
+        "followup1": "Hi {{first_name}}, just following up on my earlier message. Would love to chat if you have a moment!",
+        "followup2": "Hey {{first_name}}, one last note - if this ever becomes relevant to your work, I'd be happy to connect. No pressure!"
+      },
+      "llmEnabled": true,
+      "followUpDays": 7,
+      "maxFollowUps": 2
+    }
+  ]
+}
