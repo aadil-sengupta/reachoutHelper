@@ -106,4 +106,5 @@ temp/
 *.sw?
 
 # MacOS
-.DS_Store
+.DS_Storeanalytics.duckdb
+campaign_1_model.joblib
