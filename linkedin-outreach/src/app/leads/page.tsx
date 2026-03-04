@@ -3,14 +3,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSource } from '../layout';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { ScoreBadge } from '@/components/ui/ScoreBadge';
+import { SortSelector } from '@/components/ui/SortSelector';
 import { Button } from '@/components/ui/Button';
-import type { LeadWithOutreach, OutreachStatus } from '@/types';
+import type { LeadWithOutreach, OutreachStatus, SortOption } from '@/types';
 
 export default function LeadsPage() {
   const { sourceId } = useSource();
   const [leads, setLeads] = useState<LeadWithOutreach[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<OutreachStatus | 'all'>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('score_desc');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -25,6 +28,7 @@ export default function LeadsPage() {
         sourceId,
         page: page.toString(),
         limit: '25',
+        sortBy,
       });
       
       if (filter !== 'all') {
@@ -44,7 +48,7 @@ export default function LeadsPage() {
     } finally {
       setLoading(false);
     }
-  }, [sourceId, page, filter, search]);
+  }, [sourceId, page, filter, search, sortBy]);
 
   useEffect(() => {
     fetchLeads();
@@ -53,7 +57,7 @@ export default function LeadsPage() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [filter, search]);
+  }, [filter, search, sortBy]);
 
   const updateStatus = async (leadId: number, status: OutreachStatus) => {
     try {
@@ -127,6 +131,13 @@ export default function LeadsPage() {
             </div>
           </div>
 
+          {/* Sort selector */}
+          <SortSelector 
+            value={sortBy} 
+            onChange={setSortBy}
+            hasScores={leads.some(l => l.mlScore !== undefined)}
+          />
+
           {/* Refresh button */}
           <Button variant="ghost" size="sm" onClick={fetchLeads}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -170,6 +181,9 @@ export default function LeadsPage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider hidden md:table-cell">
                     Location
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider hidden sm:table-cell">
+                    Score
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
                     Status
                   </th>
@@ -204,6 +218,9 @@ export default function LeadsPage() {
                       <div className="text-sm text-[hsl(var(--muted-foreground))]">
                         {lead.profile?.location_name || lead.city_name || '-'}
                       </div>
+                    </td>
+                    <td className="px-4 py-4 hidden sm:table-cell">
+                      <ScoreBadge score={lead.mlScore} size="sm" />
                     </td>
                     <td className="px-4 py-4">
                       <StatusBadge status={lead.outreach?.outreach_status || 'pending'} />
@@ -359,6 +376,9 @@ function LeadDetailModal({
             <InfoItem label="Location" value={profile?.location_name || lead.city_name} />
             <InfoItem label="Status">
               <StatusBadge status={lead.outreach?.outreach_status || 'pending'} />
+            </InfoItem>
+            <InfoItem label="ML Score">
+              <ScoreBadge score={lead.mlScore} showLabel />
             </InfoItem>
             {lead.outreach?.outreach_date && (
               <InfoItem 

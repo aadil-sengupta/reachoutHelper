@@ -119,4 +119,30 @@ export interface Campaign {
 export interface LeadWithOutreach extends Lead {
   profile: LinkedInProfile | null;
   outreach: OutreachRecord | null;
+  mlScore?: number; // ML ranking score (0.0 to 1.0)
+}
+
+// ============================================================================
+// Sorting and ML Score Types
+// ============================================================================
+
+// Sort options for leads
+export type SortOption = 
+  | 'score_desc'      // ML Score (High to Low) - DEFAULT
+  | 'score_asc'       // ML Score (Low to High)
+  | 'date_asc'        // Date Added (Oldest First)
+  | 'date_desc'       // Date Added (Newest First)
+  | 'location_asc'    // Location (A-Z by state)
+  | 'location_desc';  // Location (Z-A by state)
+
+// ML Score record from lead_scores table
+export interface LeadScoreRecord {
+  id: number;
+  source_id: string;
+  lead_id: number;
+  ml_score: number;        // 0.0 to 1.0
+  ml_label: number | null; // 0=disqualified, 1=qualified, null=pending
+  public_identifier: string | null;
+  model_file: string | null;
+  computed_at: string;
 }

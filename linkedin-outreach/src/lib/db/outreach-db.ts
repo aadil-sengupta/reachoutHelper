@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'path';
-import type { OutreachRecord, OutreachStatus, ConversationMessage } from '@/types';
+import type { OutreachRecord, OutreachStatus, ConversationMessage, LeadScoreRecord } from '@/types';
 
 const DATA_DIR = process.env.DATA_DIR || './data';
 
@@ -32,6 +32,22 @@ export function getOutreachDb(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_outreach_source_lead ON outreach_record(source_id, lead_id);
     CREATE INDEX IF NOT EXISTS idx_outreach_status ON outreach_record(source_id, outreach_status);
     CREATE INDEX IF NOT EXISTS idx_followup_due ON outreach_record(source_id, outreach_status, follow_up_date);
+    
+    -- ML Scores table (populated by compute_scores.py)
+    CREATE TABLE IF NOT EXISTS lead_scores (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source_id TEXT NOT NULL,
+      lead_id INTEGER NOT NULL,
+      ml_score REAL NOT NULL,
+      ml_label INTEGER,
+      public_identifier TEXT,
+      model_file TEXT,
+      computed_at TEXT NOT NULL,
+      UNIQUE(source_id, lead_id)
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_lead_scores_source ON lead_scores(source_id);
+    CREATE INDEX IF NOT EXISTS idx_lead_scores_score ON lead_scores(source_id, ml_score DESC);
   `);
   
   return outreachDb;
@@ -262,4 +278,137 @@ export function getOutreachStats(sourceId: string): {
   stats.followups_due = followups_due;
   
   return stats;
+}
+
+// ============================================================================
+// ML Score Functions
+// ============================================================================
+
+/**
+ * Get ML score for a single lead
+ */
+export function getLeadScore(sourceId: string, leadId: number): number | null {
+  const db = getOutreachDb();
+  
+  const stmt = db.prepare(`
+    SELECT ml_score FROM lead_scores 
+    WHERE source_id = ? AND lead_id = ?
+  `);
+  
+  const row = stmt.get(sourceId, leadId) as { ml_score: number } | undefined;
+  return row?.ml_score ?? null;
+}
+
+/**
+ * Get ML score record for a single lead (includes label and metadata)
+ */
+export function getLeadScoreRecord(sourceId: string, leadId: number): LeadScoreRecord | null {
+  const db = getOutreachDb();
+  
+  const stmt = db.prepare(`
+    SELECT * FROM lead_scores 
+    WHERE source_id = ? AND lead_id = ?
+  `);
+  
+  return stmt.get(sourceId, leadId) as LeadScoreRecord | undefined ?? null;
+}
+
+/**
+ * Get all ML scores for a source as a map of leadId -> score
+ */
+export function getAllScores(sourceId: string): Map<number, number> {
+  const db = getOutreachDb();
+  
+  const stmt = db.prepare(`
+    SELECT lead_id, ml_score FROM lead_scores WHERE source_id = ?
+  `);
+  
+  const rows = stmt.all(sourceId) as { lead_id: number; ml_score: number }[];
+  return new Map(rows.map(r => [r.lead_id, r.ml_score]));
+}
+
+/**
+ * Get all ML score records for a source
+ */
+export function getAllScoreRecords(sourceId: string): LeadScoreRecord[] {
+  const db = getOutreachDb();
+  
+  const stmt = db.prepare(`
+    SELECT * FROM lead_scores WHERE source_id = ? ORDER BY ml_score DESC
+  `);
+  
+  return stmt.all(sourceId) as LeadScoreRecord[];
+}
+
+/**
+ * Get pending lead IDs sorted by ML score (highest first)
+ */
+export function getPendingLeadIdsSortedByScore(sourceId: string): number[] {
+  const db = getOutreachDb();
+  
+  // Join outreach_record with lead_scores to get pending leads sorted by ML score
+  const stmt = db.prepare(`
+    SELECT o.lead_id, COALESCE(s.ml_score, -1) as ml_score
+    FROM outreach_record o
+    LEFT JOIN lead_scores s ON o.source_id = s.source_id AND o.lead_id = s.lead_id
+    WHERE o.source_id = ? AND o.outreach_status = 'pending'
+    ORDER BY ml_score DESC, o.id ASC
+  `);
+  
+  const rows = stmt.all(sourceId) as { lead_id: number; ml_score: number }[];
+  return rows.map(r => r.lead_id);
+}
+
+/**
+ * Get scores metadata (when computed, model used, etc.)
+ */
+export function getScoresMetadata(sourceId: string): {
+  total: number;
+  computed_at: string | null;
+  model_file: string | null;
+  score_range: { min: number; max: number } | null;
+} {
+  const db = getOutreachDb();
+  
+  const countStmt = db.prepare(`
+    SELECT 
+      COUNT(*) as total,
+      MIN(computed_at) as computed_at,
+      MIN(model_file) as model_file,
+      MIN(ml_score) as min_score,
+      MAX(ml_score) as max_score
+    FROM lead_scores 
+    WHERE source_id = ?
+  `);
+  
+  const row = countStmt.get(sourceId) as {
+    total: number;
+    computed_at: string | null;
+    model_file: string | null;
+    min_score: number | null;
+    max_score: number | null;
+  };
+  
+  return {
+    total: row.total,
+    computed_at: row.computed_at,
+    model_file: row.model_file,
+    score_range: row.min_score !== null && row.max_score !== null
+      ? { min: row.min_score, max: row.max_score }
+      : null
+  };
+}
+
+/**
+ * Check if scores exist for a source
+ */
+export function hasScores(sourceId: string): boolean {
+  const db = getOutreachDb();
+  
+  const stmt = db.prepare(`
+    SELECT COUNT(*) as count FROM lead_scores WHERE source_id = ? LIMIT 1
+  `);
+  
+  const { count } = stmt.get(sourceId) as { count: number };
+  return count > 0;
 }

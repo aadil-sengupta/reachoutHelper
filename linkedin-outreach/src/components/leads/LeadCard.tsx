@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { LeadWithOutreach, Position, Education } from '@/types';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { ScoreBadge } from '@/components/ui/ScoreBadge';
 
 function formatDateRange(range: { start: { year: number; month?: number } | null; end: { year: number; month?: number } | null } | null): string {
   if (!range) return '';
@@ -43,9 +44,10 @@ function calculateDuration(range: { start: { year: number; month?: number } | nu
 interface LeadCardProps {
   lead: LeadWithOutreach;
   expanded?: boolean;
+  showScore?: boolean;
 }
 
-export function LeadCard({ lead, expanded = false }: LeadCardProps) {
+export function LeadCard({ lead, expanded = false, showScore = true }: LeadCardProps) {
   const [showFullSummary, setShowFullSummary] = useState(false);
   const [showAllPositions, setShowAllPositions] = useState(false);
   const profile = lead.profile;
@@ -120,7 +122,10 @@ export function LeadCard({ lead, expanded = false }: LeadCardProps) {
               )}
             </div>
           </div>
-          <StatusBadge status={status} />
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {showScore && <ScoreBadge score={lead.mlScore} />}
+            <StatusBadge status={status} />
+          </div>
         </div>
       </div>
       

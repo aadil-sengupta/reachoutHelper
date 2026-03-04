@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLeads, parseLeadProfile } from '@/lib/db/source-db';
-import { getOutreachRecord, getTrackedLeadIds } from '@/lib/db/outreach-db';
-import type { LeadWithOutreach, OutreachStatus } from '@/types';
+import { getOutreachRecord, getTrackedLeadIds, getLeadScore, hasScores } from '@/lib/db/outreach-db';
+import type { LeadWithOutreach, OutreachStatus, SortOption } from '@/types';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const search = searchParams.get('search') || undefined;
     const status = searchParams.get('status') as OutreachStatus | 'all' | null;
+    const sortBy = searchParams.get('sortBy') as SortOption || 'score_desc';
     
     if (!sourceId) {
       return NextResponse.json(
@@ -19,18 +20,28 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Get all leads from source
-    const { leads, total } = getLeads(sourceId, { page, limit, search });
+    // Check if ML scores are available for this source
+    const scoresAvailable = hasScores(sourceId);
     
-    // Enhance with outreach data and parsed profiles
+    // If sorting by score but no scores available, fall back to date_asc
+    const effectiveSortBy = (sortBy === 'score_desc' || sortBy === 'score_asc') && !scoresAvailable
+      ? 'date_asc'
+      : sortBy;
+    
+    // Get all leads from source with sorting
+    const { leads, total } = getLeads(sourceId, { page, limit, search, sortBy: effectiveSortBy });
+    
+    // Enhance with outreach data, parsed profiles, and ML scores
     const leadsWithOutreach: LeadWithOutreach[] = leads.map(lead => {
       const outreach = getOutreachRecord(sourceId, lead.id);
       const profile = parseLeadProfile(lead);
+      const mlScore = getLeadScore(sourceId, lead.id) ?? undefined;
       
       return {
         ...lead,
         profile,
         outreach,
+        mlScore,
       };
     });
     
@@ -49,6 +60,8 @@ export async function GET(request: NextRequest) {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+      sortBy: effectiveSortBy,
+      scoresAvailable,
     });
   } catch (error) {
     console.error('Error fetching leads:', error);
