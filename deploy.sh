@@ -10,7 +10,7 @@ echo "🚀 Starting deployment..."
 # Server details
 SERVER="ubuntu@100.104.178.23"
 SERVER_PATH="/opt/reachoutHelper"
-SSH_KEY="/Users/aadils/.ssh/Aadil's MBP.pem"
+SSH_KEY="/Users/aadils/.ssh/Aadil\'s MBP.pem"
 
 # Colors for output
 RED='\033[0;31m'
@@ -21,7 +21,7 @@ NC='\033[0m' # No Color
 # Function to run commands on server
 run_on_server() {
     echo -e "${YELLOW}Running on server: $1${NC}"
-    ssh -i "\"$SSH_KEY\"" "$SERVER" "cd $SERVER_PATH && $1"
+    ssh -i "$SSH_KEY" "$SERVER" "cd $SERVER_PATH && $1"
 }
 
 # Function to copy files to server
@@ -81,7 +81,7 @@ run_on_server "sudo chown ubuntu:ubuntu $SERVER_PATH"
 
 # Copy deployment package to server
 echo "Uploading files to server..."
-rsync -avz -e "ssh -i \"$SSH_KEY\"" \
+rsync -avz -e "ssh -i $SSH_KEY" \
     --exclude='*.db' \
     --exclude='node_modules' \
     --exclude='.git' \
@@ -140,19 +140,19 @@ cat > update-server.sh << 'EOF'
 
 SERVER="ubuntu@100.104.178.23"
 SERVER_PATH="/opt/reachoutHelper"
-SSH_KEY="/Users/aadils/.ssh/Aadil's MBP.pem"
+SSH_KEY="/Users/aadils/.ssh/Aadil\'s MBP.pem"
 
 cd linkedin-outreach
 npm run build
 cd ..
 
-rsync -avz -e "ssh -i \"$SSH_KEY\"" \
+rsync -avz -e "ssh -i $SSH_KEY" \
     --exclude='*.db' \
     --exclude='node_modules' \
     --exclude='.git' \
     linkedin-outreach/ "$SERVER:$SERVER_PATH/linkedin-outreach/"
 
-ssh -i "\"$SSH_KEY\"" "$SERVER" "cd $SERVER_PATH/linkedin-outreach && npm install && pm2 restart reachoutHelper"
+ssh -i "$SSH_KEY" "$SERVER" "cd $SERVER_PATH/linkedin-outreach && npm install && pm2 restart reachoutHelper"
 
 echo "✅ Quick update completed!"
 EOF
