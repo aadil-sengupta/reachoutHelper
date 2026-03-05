@@ -81,7 +81,7 @@ run_on_server "sudo chown ubuntu:ubuntu $SERVER_PATH"
 
 # Copy deployment package to server
 echo "Uploading files to server..."
-rsync -avz -e "ssh -i $SSH_KEY" \
+rsync -avz -e "ssh -i ~/.ssh/Aadil\\'s\\ MBP.pem" \
     --exclude='*.db' \
     --exclude='node_modules' \
     --exclude='.git' \
@@ -146,7 +146,7 @@ cd linkedin-outreach
 npm run build
 cd ..
 
-rsync -avz -e "ssh -i $SSH_KEY" \
+rsync -avz -e "ssh -i ~/.ssh/Aadil\\'s\\ MBP.pem" \
     --exclude='*.db' \
     --exclude='node_modules' \
     --exclude='.git' \
