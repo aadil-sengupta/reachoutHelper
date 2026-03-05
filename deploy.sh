@@ -92,9 +92,31 @@ echo -e "${GREEN}Step 4: Setting up server environment...${NC}"
 # Install dependencies on server
 run_on_server "cd $SERVER_PATH && npm install --production"
 
-# Ensure database files exist and have correct permissions
-run_on_server "touch $SERVER_PATH/crm.db $SERVER_PATH/data/outreach.db"
-run_on_server "chmod 644 $SERVER_PATH/crm.db $SERVER_PATH/data/outreach.db"
+# Ensure data directory and database files exist
+run_on_server "mkdir -p $SERVER_PATH/data"
+run_on_server "touch $SERVER_PATH/data/outreach.db"
+run_on_server "chmod 644 $SERVER_PATH/data/outreach.db"
+
+# Create sources.json if it doesn't exist
+run_on_server "test -f $SERVER_PATH/data/sources.json || cat > $SERVER_PATH/data/sources.json << 'SRCEOF'
+{
+  \"sources\": [
+    {
+      \"id\": \"roboscout\",
+      \"name\": \"RoboScout Campaign\",
+      \"path\": \"/opt/reachoutHelper/crm.db\",
+      \"templates\": {
+        \"simple\": \"Hi {{first_name}}, I noticed your work at {{company}}. Would love to connect and chat about potential synergies!\",
+        \"followup1\": \"Hi {{first_name}}, just following up on my earlier message. Would love to chat if you have a moment!\",
+        \"followup2\": \"Hey {{first_name}}, one last note - if this ever becomes relevant to your work, I'd be happy to connect. No pressure!\"
+      },
+      \"llmEnabled\": true,
+      \"followUpDays\": 7,
+      \"maxFollowUps\": 2
+    }
+  ]
+}
+SRCEOF"
 
 # Step 5: Restart the service
 echo -e "${GREEN}Step 5: Restarting service...${NC}"
@@ -102,10 +124,10 @@ echo -e "${GREEN}Step 5: Restarting service...${NC}"
 # Check if PM2 is being used
 if run_on_server "which pm2 > /dev/null 2>&1"; then
     echo "Using PM2 to restart service..."
-    run_on_server "pm2 restart reachoutHelper || pm2 start npm --name 'reachoutHelper' -- start"
+    run_on_server "pm2 restart linkedin-outreach || pm2 start npm --name 'linkedin-outreach' -- start"
 else
     echo "Using systemd to restart service..."
-    run_on_server "sudo systemctl restart reachoutHelper || echo 'Service not configured with systemd'"
+    run_on_server "sudo systemctl restart linkedin-outreach || echo 'Service not configured with systemd'"
 fi
 
 # Step 6: Clean up
@@ -151,7 +173,7 @@ rsync -avz -e ssh \
     --exclude='.git' \
     linkedin-outreach/ "$SERVER:$SERVER_PATH/linkedin-outreach/"
 
-ssh "$SERVER" "cd $SERVER_PATH/linkedin-outreach && npm install && pm2 restart reachoutHelper"
+ssh "$SERVER" "cd $SERVER_PATH/linkedin-outreach && npm install && pm2 restart linkedin-outreach"
 
 echo "✅ Quick update completed!"
 EOF
