@@ -21,6 +21,10 @@ build/
 *.db
 *.sqlite
 *.sqlite3
+crm.db
+data/outreach.db
+analytics.duckdb
+campaign_1_model.joblib
 
 # IDE files
 .vscode/
