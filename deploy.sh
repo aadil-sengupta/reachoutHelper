@@ -7,10 +7,9 @@ set -e  # Exit on error
 
 echo "🚀 Starting deployment..."
 
-# Server details
-SERVER="ubuntu@100.104.178.23"
+# Server details (uses ~/.ssh/config alias "reachout-aws")
+SERVER="reachout-aws"
 SERVER_PATH="/opt/reachoutHelper"
-SSH_KEY="~/.ssh/Aadil's MBP.pem"
 
 # Colors for output
 RED='\033[0;31m'
@@ -21,13 +20,13 @@ NC='\033[0m' # No Color
 # Function to run commands on server
 run_on_server() {
     echo -e "${YELLOW}Running on server: $1${NC}"
-    ssh -i "$SSH_KEY" "$SERVER" "cd $SERVER_PATH && $1"
+    ssh "$SERVER" "cd $SERVER_PATH && $1"
 }
 
 # Function to copy files to server
 copy_to_server() {
     echo -e "${YELLOW}Copying $1 to server${NC}"
-    scp -i "$SSH_KEY" "$1" "$SERVER:$SERVER_PATH/$2"
+    scp "$1" "$SERVER:$SERVER_PATH/$2"
 }
 
 # Check if we're in the right directory
@@ -81,7 +80,7 @@ run_on_server "sudo chown ubuntu:ubuntu $SERVER_PATH"
 
 # Copy deployment package to server
 echo "Uploading files to server..."
-rsync -avz -e "ssh -i ~/.ssh/Aadil\\'s\\ MBP.pem" \
+rsync -avz -e ssh \
     --exclude='*.db' \
     --exclude='node_modules' \
     --exclude='.git' \
@@ -129,30 +128,30 @@ echo "Server: $SERVER"
 echo "Path: $SERVER_PATH"
 echo ""
 echo "Next steps:"
-echo "1. Check server logs: ssh -i $SSH_KEY $SERVER 'cd $SERVER_PATH && pm2 logs'"
+echo "1. Check server logs: ssh reachout-aws 'cd $SERVER_PATH && pm2 logs'"
 echo "2. Visit your app: http://100.104.178.23:3000"
-echo "3. Run ML scoring: ssh -i $SSH_KEY $SERVER 'cd $SERVER_PATH && python3 scripts/compute_scores.py'"
+echo "3. Run ML scoring: ssh reachout-aws 'cd $SERVER_PATH && python3 scripts/compute_scores.py'"
 
 # Also create a simpler update script for quick deployments
 cat > update-server.sh << 'EOF'
 #!/bin/bash
 # Quick update script - use when only code changes
+# Uses SSH config alias "reachout-aws"
 
-SERVER="ubuntu@100.104.178.23"
+SERVER="reachout-aws"
 SERVER_PATH="/opt/reachoutHelper"
-SSH_KEY="~/.ssh/Aadil's MBP.pem"
 
 cd linkedin-outreach
 npm run build
 cd ..
 
-rsync -avz -e "ssh -i ~/.ssh/Aadil\\'s\\ MBP.pem" \
+rsync -avz -e ssh \
     --exclude='*.db' \
     --exclude='node_modules' \
     --exclude='.git' \
     linkedin-outreach/ "$SERVER:$SERVER_PATH/linkedin-outreach/"
 
-ssh -i "$SSH_KEY" "$SERVER" "cd $SERVER_PATH/linkedin-outreach && npm install && pm2 restart reachoutHelper"
+ssh "$SERVER" "cd $SERVER_PATH/linkedin-outreach && npm install && pm2 restart reachoutHelper"
 
 echo "✅ Quick update completed!"
 EOF
