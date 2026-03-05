@@ -89,8 +89,9 @@ rsync -avz -e ssh \
 # Step 4: Set up server environment
 echo -e "${GREEN}Step 4: Setting up server environment...${NC}"
 
-# Install dependencies on server
+# Install dependencies on server and rebuild native modules
 run_on_server "cd $SERVER_PATH && npm install --production"
+run_on_server "cd $SERVER_PATH && npm rebuild better-sqlite3"
 
 # Ensure data directory and database files exist
 run_on_server "mkdir -p $SERVER_PATH/data"
