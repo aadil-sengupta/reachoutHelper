@@ -10,7 +10,7 @@ echo "🚀 Starting deployment..."
 # Server details
 SERVER="ubuntu@100.104.178.23"
 SERVER_PATH="/opt/reachoutHelper"
-SSH_KEY="$HOME/.ssh/Aadil's MBP.pem"
+SSH_KEY="/Users/aadils/.ssh/Aadil's MBP.pem"
 
 # Colors for output
 RED='\033[0;31m'
@@ -140,7 +140,7 @@ cat > update-server.sh << 'EOF'
 
 SERVER="ubuntu@100.104.178.23"
 SERVER_PATH="/opt/reachoutHelper"
-SSH_KEY="$HOME/.ssh/Aadil's MBP.pem"
+SSH_KEY="/Users/aadils/.ssh/Aadil's MBP.pem"
 
 cd linkedin-outreach
 npm run build
