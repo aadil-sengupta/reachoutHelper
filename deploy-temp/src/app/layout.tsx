@@ -5,11 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import './globals.css';
 
-interface DailyStats {
-  messages_today: number;
-  pending_total: number;
-}
-
 // Source context for sharing selected source across the app
 interface SourceContextType {
   sourceId: string;
@@ -64,16 +59,6 @@ export default function RootLayout({
 function Header() {
   const { sourceId, setSourceId, sources } = useSource();
   const pathname = usePathname();
-  const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
-
-  useEffect(() => {
-    if (sourceId) {
-      fetch(`/api/stats?sourceId=${sourceId}`)
-        .then(res => res.json())
-        .then(data => setDailyStats(data))
-        .catch(err => console.error('Failed to fetch stats:', err));
-    }
-  }, [sourceId]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/95 backdrop-blur supports-[backdrop-filter]:bg-[hsl(var(--background))]/60">
@@ -95,7 +80,6 @@ function Header() {
               <NavLink href="/" label="Queue" active={pathname === '/'} />
               <NavLink href="/leads" label="All Leads" active={pathname === '/leads'} />
               <NavLink href="/followups" label="Follow-ups" active={pathname === '/followups'} />
-              <NavLink href="/settings" label="Settings" active={pathname === '/settings'} />
             </nav>
           </div>
           
@@ -120,25 +104,6 @@ function Header() {
               </svg>
             </div>
             
-            {/* Daily stats */}
-            {dailyStats && (
-              <div className="flex items-center gap-2 text-xs text-[hsl(var(--muted-foreground))]">
-                <div className="flex items-center gap-1">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                  <span>{dailyStats.messages_today} sent today</span>
-                </div>
-                <div className="w-px h-3 bg-[hsl(var(--border))]"></div>
-                <div className="flex items-center gap-1">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>{dailyStats.pending_total} pending</span>
-                </div>
-              </div>
-            )}
-            
             {/* Keyboard shortcuts hint */}
             <div className="hidden lg:flex items-center gap-1.5 text-xs text-[hsl(var(--muted-foreground))]">
               <span>Press</span>
@@ -156,7 +121,6 @@ function Header() {
             <NavLink href="/" label="Queue" active={pathname === '/'} />
             <NavLink href="/leads" label="Leads" active={pathname === '/leads'} />
             <NavLink href="/followups" label="Follow-ups" active={pathname === '/followups'} />
-            <NavLink href="/settings" label="Settings" active={pathname === '/settings'} />
           </nav>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'path';
-import type { OutreachRecord, OutreachStatus, ConversationMessage, LeadScoreRecord, LeadMessages } from '@/types';
+import type { OutreachRecord, OutreachStatus, ConversationMessage, LeadScoreRecord } from '@/types';
 
 const DATA_DIR = process.env.DATA_DIR || './data';
 
@@ -48,20 +48,6 @@ export function getOutreachDb(): Database.Database {
     
     CREATE INDEX IF NOT EXISTS idx_lead_scores_source ON lead_scores(source_id);
     CREATE INDEX IF NOT EXISTS idx_lead_scores_score ON lead_scores(source_id, ml_score DESC);
-
-    -- Pre-generated connection messages
-    CREATE TABLE IF NOT EXISTS lead_messages (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      source_id TEXT NOT NULL,
-      lead_id INTEGER NOT NULL,
-      message_1 TEXT NOT NULL,
-      message_2 TEXT NOT NULL,
-      prompt_used TEXT,
-      generated_at TEXT NOT NULL,
-      UNIQUE(source_id, lead_id)
-    );
-    
-    CREATE INDEX IF NOT EXISTS idx_lead_messages_source ON lead_messages(source_id, lead_id);
   `);
   
   return outreachDb;
@@ -425,58 +411,4 @@ export function hasScores(sourceId: string): boolean {
   
   const { count } = stmt.get(sourceId) as { count: number };
   return count > 0;
-}
-
-// ============================================================================
-// Pre-generated Connection Messages
-// ============================================================================
-
-/**
- * Get stored connection messages for a lead
- */
-export function getLeadMessages(sourceId: string, leadId: number): LeadMessages | null {
-  const db = getOutreachDb();
-  
-  const stmt = db.prepare(`
-    SELECT * FROM lead_messages WHERE source_id = ? AND lead_id = ?
-  `);
-  
-  return stmt.get(sourceId, leadId) as LeadMessages | undefined ?? null;
-}
-
-/**
- * Save connection messages for a lead
- */
-export function saveLeadMessages(
-  sourceId: string,
-  leadId: number,
-  messages: { message_1: string; message_2: string; prompt_used?: string }
-): LeadMessages {
-  const db = getOutreachDb();
-  const now = new Date().toISOString();
-  
-  db.prepare(`
-    INSERT INTO lead_messages (source_id, lead_id, message_1, message_2, prompt_used, generated_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-    ON CONFLICT(source_id, lead_id) DO UPDATE SET
-      message_1 = excluded.message_1,
-      message_2 = excluded.message_2,
-      prompt_used = excluded.prompt_used,
-      generated_at = excluded.generated_at
-  `).run(sourceId, leadId, messages.message_1, messages.message_2, messages.prompt_used || null, now);
-  
-  return getLeadMessages(sourceId, leadId)!;
-}
-
-/**
- * Check if messages exist for a lead
- */
-export function hasLeadMessages(sourceId: string, leadId: number): boolean {
-  const db = getOutreachDb();
-  
-  const stmt = db.prepare(`
-    SELECT 1 FROM lead_messages WHERE source_id = ? AND lead_id = ? LIMIT 1
-  `);
-  
-  return stmt.get(sourceId, leadId) !== undefined;
 }

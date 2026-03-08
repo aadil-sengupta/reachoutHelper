@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLeads, getLead, parseLeadProfile } from '@/lib/db/source-db';
-import { getOutreachRecord, getTrackedLeadIds, getPendingLeadIdsSortedByScore, getLeadScore, hasScores, getLeadMessages, hasLeadMessages } from '@/lib/db/outreach-db';
+import { getOutreachRecord, getTrackedLeadIds, getPendingLeadIdsSortedByScore, getLeadScore, hasScores } from '@/lib/db/outreach-db';
 import type { LeadWithOutreach, SortOption } from '@/types';
 
 // Get the next pending lead for queue mode
@@ -50,8 +50,6 @@ export async function GET(request: NextRequest) {
       if (status === 'pending') {
         const profile = parseLeadProfile(lead);
         const mlScore = getLeadScore(sourceId, lead.id) ?? undefined;
-        const messages = getLeadMessages(sourceId, lead.id);
-        const messagesGenerated = hasLeadMessages(sourceId, lead.id);
         
         const leadWithOutreach: LeadWithOutreach = {
           ...lead,
@@ -62,8 +60,6 @@ export async function GET(request: NextRequest) {
         
         return NextResponse.json({ 
           lead: leadWithOutreach,
-          messages,
-          messagesGenerated,
           sortBy: effectiveSortBy,
           scoresAvailable,
         });
@@ -76,7 +72,6 @@ export async function GET(request: NextRequest) {
       message: 'No more pending leads',
       sortBy: effectiveSortBy,
       scoresAvailable,
-      messagesGenerated: false,
     });
   } catch (error) {
     console.error('Error fetching next lead:', error);

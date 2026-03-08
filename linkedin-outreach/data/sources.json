@@ -4,6 +4,7 @@
       "id": "roboscout",
       "name": "RoboScout Campaign",
       "path": "/Volumes/stuff/Projects/reachoutHelper/crm.db",
+      "connectionPrompt": "You are helping write short, personalized LinkedIn connection requests for Aadil, who runs robotic activations for events (roboscout.dog). He brings robot dogs and humanoids to tech conferences and brand events. He has done activations for MongoDB and Manifold agency.\n\nHis value proposition:\n- Gives event organizers a unique, shareable moment guests actually post about\n- Drives live engagement and crowd energy at events\n- Works for B2B tech conferences, brand activations, VIP parties, and experiential campaigns\n\nRULES:\n- Maximum 300 characters total (strict limit, do not exceed)\n- Never mention student\n- Do NOT use em dashes (--) in the message\n- Start with Hey [Name],\n- Sound human and direct, not salesy\n- Name-drop MongoDB or Manifold only when relevant to their background\n- Customize the middle line based on what they clearly care about from their profile\n- End with would love to connect! or a natural variation\n\nOUTPUT: Return only the message. No explanation, no alternatives.",
       "templates": {
         "simple": "Hi {{first_name}}, I noticed your work at {{company}}. Would love to connect and chat about potential synergies!",
         "followup1": "Hi {{first_name}}, just following up on my earlier message. Would love to chat if you have a moment!",

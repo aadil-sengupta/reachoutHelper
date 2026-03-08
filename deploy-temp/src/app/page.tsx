@@ -7,19 +7,16 @@ import { MessageGenerator } from '@/components/outreach/MessageGenerator';
 import { ConversationPanel } from '@/components/outreach/ConversationPanel';
 import { Button } from '@/components/ui/Button';
 import { useKeyboardShortcuts, ShortcutsHelp } from '@/hooks/useKeyboardShortcuts';
-import type { LeadWithOutreach, LeadMessages } from '@/types';
+import type { LeadWithOutreach } from '@/types';
 
 export default function QueuePage() {
   const { sourceId } = useSource();
   const [lead, setLead] = useState<LeadWithOutreach | null>(null);
-  const [nextLead, setNextLead] = useState<LeadWithOutreach | null>(null);
-  const [messages, setMessages] = useState<LeadMessages | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentMessage, setCurrentMessage] = useState('');
   const [showHelp, setShowHelp] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [generatingMessages, setGeneratingMessages] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   
   const fetchNextLead = useCallback(async () => {
@@ -28,7 +25,6 @@ export default function QueuePage() {
     setLoading(true);
     setError(null);
     setCurrentMessage('');
-    setMessages(null);
     
     try {
       const res = await fetch(`/api/leads/next?sourceId=${sourceId}`);
@@ -36,15 +32,6 @@ export default function QueuePage() {
       
       if (data.lead) {
         setLead(data.lead);
-        setMessages(data.messages || null);
-        
-        // Auto-generate messages if not present
-        if (!data.messages) {
-          generateAndSetMessages(data.lead.id, sourceId, setMessages, setGeneratingMessages, showToast);
-        }
-        
-        // Pre-fetch next lead
-        prefetchNextLead(sourceId, data.lead.id, setNextLead);
       } else {
         setLead(null);
         setError('No pending leads in queue');
@@ -61,74 +48,9 @@ export default function QueuePage() {
     fetchNextLead();
   }, [fetchNextLead]);
 
-  // Helper to show toast from non-component context
   const showToast = (message: string) => {
     setToast(message);
     setTimeout(() => setToast(null), 2000);
-  };
-
-  // Pre-generate messages for a lead
-  async function generateAndSetMessages(
-    leadId: number,
-    sid: string,
-    setMsgs: React.Dispatch<React.SetStateAction<LeadMessages | null>>,
-    setGenerating: React.Dispatch<React.SetStateAction<boolean>>,
-    toastFn: (msg: string) => void
-  ) {
-    setGenerating(true);
-    try {
-      const res = await fetch('/api/leads/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceId: sid, leadId }),
-      });
-      const data = await res.json();
-      if (data.messages) {
-        setMsgs(data.messages);
-      }
-    } catch (err) {
-      console.error('Failed to generate messages:', err);
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-  // Prefetch next lead in queue
-  async function prefetchNextLead(sid: string, currentLeadId: number, setNext: React.Dispatch<React.SetStateAction<LeadWithOutreach | null>>) {
-    try {
-      const res = await fetch(`/api/leads/next?sourceId=${sid}&afterId=${currentLeadId}`);
-      const data = await res.json();
-      if (data.lead) {
-        setNext(data.lead);
-        // Pre-generate messages for next lead
-        generateAndSetMessages(data.lead.id, sid, () => {}, () => {}, () => {});
-      }
-    } catch (err) {
-      console.error('Failed to prefetch next lead:', err);
-    }
-  }
-
-  const handleGenerateMessages = async () => {
-    if (!lead || !sourceId) return;
-    
-    setGeneratingMessages(true);
-    try {
-      const res = await fetch('/api/leads/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceId, leadId: lead.id }),
-      });
-      const data = await res.json();
-      if (data.messages) {
-        setMessages(data.messages);
-        showToast('Messages generated');
-      }
-    } catch (err) {
-      console.error('Failed to generate messages:', err);
-      showToast('Failed to generate messages');
-    } finally {
-      setGeneratingMessages(false);
-    }
   };
 
   const copyMessage = useCallback(async () => {
@@ -338,54 +260,7 @@ export default function QueuePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Lead info */}
         <div>
-          <LeadCard 
-            lead={lead} 
-            messages={messages}
-            onGenerateMessages={handleGenerateMessages}
-            isGeneratingMessages={generatingMessages}
-          />
-          
-          {/* Message selector when messages are available */}
-          {messages && (
-            <div className="mt-4 card p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-                  Select Message to Use
-                </h3>
-                {generatingMessages && (
-                  <span className="text-xs text-[hsl(var(--muted-foreground))]">Generating...</span>
-                )}
-              </div>
-              <div className="space-y-3">
-                <button
-                  onClick={() => setCurrentMessage(messages.message_1)}
-                  className={`w-full p-4 rounded-lg text-left transition-all ${
-                    currentMessage === messages.message_1
-                      ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] ring-2 ring-[hsl(var(--primary))] ring-offset-2 ring-offset-[hsl(var(--card))]'
-                      : 'bg-[hsl(var(--muted))] hover:bg-[hsl(var(--muted))]/80 border border-[hsl(var(--border))]'
-                  }`}
-                >
-                  <p className="text-sm">{messages.message_1}</p>
-                  <div className={`mt-2 text-xs ${messages.message_1.length > 300 ? 'text-red-400' : 'text-[hsl(var(--muted-foreground))]'}`}>
-                    {messages.message_1.length}/300 characters
-                  </div>
-                </button>
-                <button
-                  onClick={() => setCurrentMessage(messages.message_2)}
-                  className={`w-full p-4 rounded-lg text-left transition-all ${
-                    currentMessage === messages.message_2
-                      ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] ring-2 ring-[hsl(var(--primary))] ring-offset-2 ring-offset-[hsl(var(--card))]'
-                      : 'bg-[hsl(var(--muted))] hover:bg-[hsl(var(--muted))]/80 border border-[hsl(var(--border))]'
-                  }`}
-                >
-                  <p className="text-sm">{messages.message_2}</p>
-                  <div className={`mt-2 text-xs ${messages.message_2.length > 300 ? 'text-red-400' : 'text-[hsl(var(--muted-foreground))]'}`}>
-                    {messages.message_2.length}/300 characters
-                  </div>
-                </button>
-              </div>
-            </div>
-          )}
+          <LeadCard lead={lead} />
         </div>
 
         {/* Right: Message generation */}

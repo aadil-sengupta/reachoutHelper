@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { LeadWithOutreach, Position, Education, LeadMessages } from '@/types';
+import type { LeadWithOutreach, Position, Education } from '@/types';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ScoreBadge } from '@/components/ui/ScoreBadge';
 
@@ -43,17 +43,13 @@ function calculateDuration(range: { start: { year: number; month?: number } | nu
 
 interface LeadCardProps {
   lead: LeadWithOutreach;
-  messages?: LeadMessages | null;
   expanded?: boolean;
   showScore?: boolean;
-  onGenerateMessages?: () => void;
-  isGeneratingMessages?: boolean;
 }
 
-export function LeadCard({ lead, messages, expanded = false, showScore = true, onGenerateMessages, isGeneratingMessages }: LeadCardProps) {
+export function LeadCard({ lead, expanded = false, showScore = true }: LeadCardProps) {
   const [showFullSummary, setShowFullSummary] = useState(false);
   const [showAllPositions, setShowAllPositions] = useState(false);
-  const [showAllMessages, setShowAllMessages] = useState(true); // Show both messages by default
   const profile = lead.profile;
   const status = lead.outreach?.outreach_status || 'pending';
   
@@ -131,43 +127,6 @@ export function LeadCard({ lead, messages, expanded = false, showScore = true, o
             <StatusBadge status={status} />
           </div>
         </div>
-      </div>
-
-      {/* Connection Message Preview */}
-      <div className="px-6 py-4 bg-[hsl(var(--muted))]/20 border-b border-[hsl(var(--border))]">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-            Connection Message
-          </h3>
-          {messages ? (
-            <span className="text-xs text-[hsl(var(--primary))] font-medium">2 variations</span>
-          ) : onGenerateMessages ? (
-            <button
-              onClick={onGenerateMessages}
-              disabled={isGeneratingMessages}
-              className="text-xs px-2 py-1 rounded-md bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:opacity-90 disabled:opacity-50 font-medium"
-            >
-              {isGeneratingMessages ? 'Generating...' : 'Generate'}
-            </button>
-          ) : null}
-        </div>
-        
-        {messages ? (
-          <div className="space-y-3">
-            <div className="p-3 rounded-lg bg-[hsl(var(--background))] border border-[hsl(var(--border))]">
-              <p className="text-sm text-[hsl(var(--foreground))]">{messages.message_1}</p>
-            </div>
-            {messages.message_2 && (
-              <div className="p-3 rounded-lg bg-[hsl(var(--background))] border border-[hsl(var(--border))]">
-                <p className="text-sm text-[hsl(var(--foreground))]">{messages.message_2}</p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <p className="text-sm text-[hsl(var(--muted-foreground))] italic">
-            No messages generated yet. Click Generate to create personalized messages.
-          </p>
-        )}
       </div>
       
       {/* Summary */}

@@ -6,7 +6,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ScoreBadge } from '@/components/ui/ScoreBadge';
 import { SortSelector } from '@/components/ui/SortSelector';
 import { Button } from '@/components/ui/Button';
-import type { LeadWithOutreach, OutreachStatus, SortOption, LeadMessages } from '@/types';
+import type { LeadWithOutreach, OutreachStatus, SortOption } from '@/types';
 
 export default function LeadsPage() {
   const { sourceId } = useSource();
@@ -323,44 +323,6 @@ function LeadDetailModal({
   onUpdate: () => void;
 }) {
   const profile = lead.profile;
-  const [messages, setMessages] = useState<LeadMessages | null>(null);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const [generatingMessages, setGeneratingMessages] = useState(false);
-
-  useEffect(() => {
-    async function fetchMessages() {
-      setLoadingMessages(true);
-      try {
-        const res = await fetch(`/api/leads/messages?sourceId=${sourceId}&leadId=${lead.id}`);
-        const data = await res.json();
-        setMessages(data.messages);
-      } catch (err) {
-        console.error('Failed to fetch messages:', err);
-      } finally {
-        setLoadingMessages(false);
-      }
-    }
-    fetchMessages();
-  }, [sourceId, lead.id]);
-
-  const handleGenerateMessages = async () => {
-    setGeneratingMessages(true);
-    try {
-      const res = await fetch('/api/leads/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceId, leadId: lead.id }),
-      });
-      const data = await res.json();
-      if (data.messages) {
-        setMessages(data.messages);
-      }
-    } catch (err) {
-      console.error('Failed to generate messages:', err);
-    } finally {
-      setGeneratingMessages(false);
-    }
-  };
 
   // Close on escape
   useEffect(() => {
@@ -423,74 +385,6 @@ function LeadDetailModal({
                 label="Reached out" 
                 value={new Date(lead.outreach.outreach_date).toLocaleDateString()} 
               />
-            )}
-          </div>
-
-          {/* Connection Messages */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-                Connection Messages
-              </h3>
-              {loadingMessages ? (
-                <span className="text-xs text-[hsl(var(--muted-foreground))]">Loading...</span>
-              ) : messages ? (
-                <span className="text-xs text-[hsl(var(--primary))] font-medium">Ready</span>
-              ) : (
-                <button
-                  onClick={handleGenerateMessages}
-                  disabled={generatingMessages}
-                  className="text-xs px-2 py-1 rounded-md bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:opacity-90 disabled:opacity-50 font-medium"
-                >
-                  {generatingMessages ? 'Generating...' : 'Generate'}
-                </button>
-              )}
-            </div>
-            
-            {messages ? (
-              <div className="space-y-3">
-                <div className="p-3 rounded-lg bg-[hsl(var(--background))] border border-[hsl(var(--border))]">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-[hsl(var(--muted-foreground))]">Variation 1</span>
-                    <button
-                      onClick={() => navigator.clipboard.writeText(messages.message_1)}
-                      className="text-xs text-[hsl(var(--primary))] hover:underline"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                  <p className="text-sm text-[hsl(var(--foreground))]">{messages.message_1}</p>
-                  <div className={`mt-2 text-xs ${messages.message_1.length > 300 ? 'text-red-400' : 'text-[hsl(var(--muted-foreground))]'}`}>
-                    {messages.message_1.length}/300 characters
-                  </div>
-                </div>
-                <div className="p-3 rounded-lg bg-[hsl(var(--background))] border border-[hsl(var(--border))]">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-[hsl(var(--muted-foreground))]">Variation 2</span>
-                    <button
-                      onClick={() => navigator.clipboard.writeText(messages.message_2)}
-                      className="text-xs text-[hsl(var(--primary))] hover:underline"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                  <p className="text-sm text-[hsl(var(--foreground))]">{messages.message_2}</p>
-                  <div className={`mt-2 text-xs ${messages.message_2.length > 300 ? 'text-red-400' : 'text-[hsl(var(--muted-foreground))]'}`}>
-                    {messages.message_2.length}/300 characters
-                  </div>
-                </div>
-                <button
-                  onClick={handleGenerateMessages}
-                  disabled={generatingMessages}
-                  className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] underline"
-                >
-                  {generatingMessages ? 'Regenerating...' : 'Regenerate messages'}
-                </button>
-              </div>
-            ) : !loadingMessages && (
-              <p className="text-sm text-[hsl(var(--muted-foreground))] italic">
-                No messages generated yet. Click Generate to create personalized messages.
-              </p>
             )}
           </div>
 

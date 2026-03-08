@@ -130,15 +130,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, record });
       }
       
-      case 'skip': {
-        const record = createOrUpdateOutreach(sourceId, leadId, {
-          outreach_status: 'ignored',
-          notes: notes || 'Skipped from queue',
-        });
-        
-        return NextResponse.json({ success: true, record });
-      }
-      
       case 'update_notes': {
         const record = createOrUpdateOutreach(sourceId, leadId, {
           notes: notes || '',

@@ -92,7 +92,6 @@ export interface Source {
   id: string;
   name: string;
   path: string;
-  connectionPrompt?: string;
   templates: {
     simple: string;
     followup1: string;
@@ -146,14 +145,4 @@ export interface LeadScoreRecord {
   public_identifier: string | null;
   model_file: string | null;
   computed_at: string;
-}
-
-// Pre-generated connection messages
-export interface LeadMessages {
-  source_id: string;
-  lead_id: number;
-  message_1: string;
-  message_2: string;
-  prompt_used: string | null;
-  generated_at: string;
 }
